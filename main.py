@@ -6,7 +6,6 @@ from typing import Optional
 app = FastAPI(title="My FastAPI")
 
 db = {}
-id = 0
  
 class Blog(BaseModel):
     title: str
@@ -36,8 +35,7 @@ def create_blogs(blogg: Blog):
             detail="At least one field is empty"
         )
     
-    global id
-    id += 1
+    id = len(db) + 1
     new_blog = {
         "title": blogg.title,
         "content": blogg.content,
@@ -48,7 +46,7 @@ def create_blogs(blogg: Blog):
     db[id] = new_blog
     return {
         "message": "Blog created successfully",
-        "data": new_blog
+        "data": db
     }
 
 #Read a singular Post
@@ -69,7 +67,7 @@ def get_blog_post(id: int):
     )
 
 #Update Blog
-@app.patch("/blog{id}", status_code=status.HTTP_200_OK)
+@app.patch("/blog/{id}", status_code=status.HTTP_200_OK)
 def update_blog(id: int, update_blog: UpdateBlog):
     for blog in db:
         if blog == id:
@@ -81,16 +79,18 @@ def update_blog(id: int, update_blog: UpdateBlog):
 
             if update_blog.author != None:
                 db[blog]["author"] = update_blog.author
+
+            db[blog]["updated_time"] = datetime.utcnow()
     
             return {
                 "message": "Blog updated successfully",
-                "data": db
+                "data": db[id]
             }
     
-        raise HTTPException(
-            status_code=status.HTTP_204_NO_CONTENT,
-            details= "Id does not exist!"
-        )
+    raise HTTPException(
+        status_code=status.HTTP_204_NO_CONTENT,
+        details= "Id does not exist!"
+    )
     
 #Delete a Post
 @app.delete("/blog/{id}")
@@ -105,5 +105,5 @@ def delete_post(id: int):
     
     raise HTTPException(
         status_code=status.HTTP_200_OK,
-        detail="Post Deleted"
+        detail= f"Post id: {id} Not found!"
     )
